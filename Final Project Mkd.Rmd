@@ -1,0 +1,106 @@
+---
+title: "4740 Project"
+author: "Chris VanKerkhove"
+date: "5/5/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## A Music Assignment Model
+
+In this Markdown, I will document my process of creating and validating different models (with increasing complexity) for classifying music snippets into different musical genres. 
+
+The data is taken from Kaggle from the page <https://www.kaggle.com/insiyeah/musicfeatures>. The data was generated using 30 second MP3 snippets of songs and then extracting features of the sound-bite to act as different predictors. 
+
+
+```{r Setup, include = FALSE}
+setwd("~/Desktop/ORIE 4740/Final Project")
+library(readr)
+library(tibble)
+library(dplyr)
+source("Helpful_Functions.R")
+```
+
+### Data Preproccessing
+
+Checking for missing values, casting types for classification, ensuring clean data.frame
+
+```{r Data, include = FALSE}
+####Data Cleaning and Manipulation###
+music.dat <- read_csv("data.csv") %>%
+  tibble()
+#missing values
+missing <- c()
+classes <- c()
+for (col.name in colnames(music.dat)) {
+  missing[col.name] <- sum(is.na(music.dat[[col.name]]))
+  classes[col.name] <- class(music.dat[[col.name]])
+}
+```
+
+```{r Data Results, echo = TRUE}
+#Dataset is complete, No missing data
+sum(missing)
+#removing file name column ('label' column acts as dependent var)
+df <- select(music.dat, -filename)
+df$label <- as.factor(df$label)
+tibble(df)
+```
+
+## K-Nearest-Neighbor Multinomial Classification
+
+In the following cells I will perform 10-fold CV 10 times, on the KNN algorithm classification for different values of K (number of nearest neighbors to consider during algorithm), and then plot to determine the best value of K.
+
+```{r KNN-CV, echo=FALSE}
+#running multinomial classification for different values of K
+#computing error through 10-fold CV 10 times
+k.values <- seq(1,30,1)
+cv.errors <- c()
+for (i in 1:length(k.values)) {
+  #errors from 10-fold, 10 iteration CV
+  out2 <- run.knn.cv(df, k.values[i], levels(df$label), 10, 10)
+  cv.errors[i] <- out2
+}
+plot(k.values, cv.errors)
+```
+
+Based on the plot from this validation method, for reducing overall error (across all classification classes), the optimal **K= 5**. 
+Next, I will run 20 iterations of KNN using the validation set approach (60% training), this time recording and plotting the error of each respective genre
+
+```{r Genre-validation set error, include=FALSE}
+#running 10 iterations of validation set knn
+#computing error classification error by each class
+genres <- levels(df$label)
+#dataframe to store error data for each genre across iterations
+errors.df <- data.frame(matrix(ncol=10, nrow=0))
+colnames(errors.df) <- genres
+#number of iterations to average error over
+n <- 20
+
+for (itr in 1:n) {
+  out <- run.knn(df, 5, levels(df$label), 0.6)
+  d <- as.data.frame(out[[1]])
+  d1 <- as.data.frame(out[[1]]) %>%
+    group_by(test.label) %>%
+    summarise(tot = sum(Freq)) %>%
+    ungroup()
+  
+  for (i in 1:length(genres)){
+    numer <- filter(d, d$knn.pred == genres[i] & d$test.label == genres[i])$Freq
+    denom <- filter(d1, d1$test.label == genres[i])$tot
+    errors.df[itr, genres[i]] <- 1 - (numer/denom)
+  }
+}
+errors <- summarise_each(errors.df, list(.=mean))
+```
+Errors:
+```{r Errors Plot , echo=FALSE}
+errors
+barplot(as.matrix(errors), las=2)
+```
+
+
+
