@@ -23,10 +23,10 @@ df$label <- as.factor(df$label)
 
 ####Logistic Regression####
 #getting data to be fit for a single genre
-df.blues <- filter(df, !(label == 'classical')) %>%
+df.blues <- filter(df, !(label == 'pop')) %>%
   sample_n(100, replace = FALSE) %>%
   mutate(label = 'other') %>%
-  bind_rows(filter(df, label == 'classical'))
+  bind_rows(filter(df, label == 'pop'))
 df.blues$label <- as.factor(df.blues$label)
 
 train_ind <- sample(1:nrow(df.blues), 0.6*nrow(df.blues))
@@ -73,25 +73,6 @@ errors <- summarise_each(errors.df, list(.=mean))
 errors
 barplot(as.matrix(errors), las=2)
 
-#binary classification for each genre
-#for each genre
-#take data points from genre (100)
-#select 100 random data points from non-genre and label as 'other'
-#run KNN 
-genres <- levels(df$label)
-error <- c()
-tables <- c()
-for (i in 1:length(genres)) {
-  print(genres[i])
-  df.genre <- filter(df, !(label == genres[i])) %>%
-    sample_n(100, replace = FALSE) %>%
-    mutate(label = 'other') %>%
-    bind_rows(filter(df, label == genres[i]))
-  df.genre$label <- as.factor(df.genre$label)
-  out <- run.knn(df.genre, 3, levels(df.genre$label), 0.5)
-  error[genres[i]] <- out[[2]]
-  tables[[genres[i]]] <- out[[1]]
-}
 
 #running multinomial classification for different values of K
 #computing error through 10-fold CV 10 times
@@ -108,3 +89,40 @@ for (i in 1:length(k.values)) {
 }
 plot(k.values, errors)
 plot(k.values, cv.errors)
+
+
+#binary classification for each genre
+#for each genre
+#take data points from genre (100)
+#select 100 random data points from non-genre and label as 'other'
+#run KNN 
+genres <- levels(df$label)
+error <- c()
+k.values <- seq(1,20,1)
+best.k <- c()
+
+for (i in 1:length(genres)) {
+  print(genres[i])
+  df.genre <- filter(df, !(label == genres[i])) %>%
+    sample_n(100, replace = FALSE) %>%
+    mutate(label = 'other') %>%
+    bind_rows(filter(df, label == genres[i]))
+  df.genre$label <- as.factor(df.genre$label)
+  #out <- run.knn(df.genre, 3, levels(df.genre$label), 0.5)
+  #error[genres[i]] <- out[[2]]
+  #tables[[genres[i]]] <- out[[1]]
+  #list for storing error values of each K 
+  k.list <- c()
+  for (k in 2:length(k.values)) {
+    out <- run.knn.cv(df.genre, k.values[k], levels(df.genre$label), 10, 10)
+    k.list[k] <- out
+  }
+  print(k.list)
+  best.k[genres[i]] <- which.min(k.list)
+  error[genres[i]] <- min(k.list)
+}
+
+error
+best.k
+
+

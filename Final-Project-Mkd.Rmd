@@ -17,10 +17,11 @@ The data is taken from Kaggle from the page <https://www.kaggle.com/insiyeah/mus
 
 
 ```{r Setup, include = FALSE}
-setwd("~/Desktop/ORIE 4740/Final Project")
+setwd("/Users/cvankerkhove/Documents/GitHub /Music-Classification-Model")
 library(readr)
 library(tibble)
 library(dplyr)
+library(ggplot2)
 source("Helpful_Functions.R")
 ```
 
@@ -50,7 +51,9 @@ df$label <- as.factor(df$label)
 tibble(df)
 ```
 
-## K-Nearest-Neighbor Multinomial Classification
+## K-Nearest-Neighbor Algorithm
+
+### Multinomial Classification
 
 In the following cells I will perform 10-fold CV 10 times, on the KNN algorithm classification for different values of K (number of nearest neighbors to consider during algorithm), and then plot to determine the best value of K.
 
@@ -98,9 +101,72 @@ errors <- summarise_each(errors.df, list(.=mean))
 ```
 Errors:
 ```{r Errors Plot , echo=FALSE}
-errors
-barplot(as.matrix(errors), las=2)
+##ggplot2 barplotting
+#getting error data in a valid input to ggplot2
+errors.num <- c()
+for (i in 1:ncol(errors)) {
+  errors.num[genres[i]] <- errors[[i]]
+}
+
+errors.df <- cbind(genre = rownames(as.data.frame(errors.num)), as.data.frame(errors.num))
+rownames(errors.df) <- 1:nrow(errors.df)
+#plotting
+ggplot(errors.df, aes(genre, errors.num)) +
+  geom_bar(stat = "identity")
 ```
 
+### Binary Classification
+
+Next, I will use the KNN algorithm, but as a binary classifier, i.e. for each genre I will update the dataframe and change every other genre to "other"
+so that the column as a factor only has 2 levels (said genre, and other). The goal of this is to improve the accuracy of each genre without multinomial classification.
+Furthermore, I will use 10 fold CV 10 times f choose a seperate optimal K value for each genre; providing those values of K and plotting the errors. 
+
+Another assumption, I randomly select 100 "other" data points to keep the dataset balanced, as we will only have 100 points for each individual genre
+
+``` {r KNN Binary Classification, include=FALSE}
+#binary classification for each genre
+#for each genre
+#take data points from genre (100)
+#select 100 random data points from non-genre and label as 'other'
+#run KNN 
+genres <- levels(df$label)
+#list for recording errors of KNN
+errors <- c()
+#lists for finding best k-value for each genre
+k.values <- seq(1,20,1)
+best.k <- c()
+
+for (i in 1:length(genres)) {
+  print(genres[i])
+  df.genre <- filter(df, !(label == genres[i])) %>%
+    sample_n(100, replace = FALSE) %>%
+    mutate(label = 'other') %>%
+    bind_rows(filter(df, label == genres[i]))
+  df.genre$label <- as.factor(df.genre$label)
+  #out <- run.knn(df.genre, 3, levels(df.genre$label), 0.5)
+  #error[genres[i]] <- out[[2]]
+  #tables[[genres[i]]] <- out[[1]]
+  #list for storing error values of each K 
+  k.list <- c()
+  for (k in 1:length(k.values)) {
+    out <- run.knn.cv(df.genre, k.values[k], levels(df.genre$label), 10, 10)
+    k.list[k] <- out
+  }
+  best.k[genres[i]] <- which.min(k.list)
+  errors[genres[i]] <- min(k.list)
+}
+```
+
+```{r Plotting Error Values, echo=FALSE}
+##ggplot2 barplotting
+#getting error data in a valid input to ggplot2
+errors.df <- cbind(genre = rownames(as.data.frame(errors)), as.data.frame(errors),
+                        as.data.frame(best.k))
+rownames(errors.df) <- 1:nrow(errors.df)
+errors.df$best.k <- as.factor(errors.df$best.k)
+
+ggplot(errors.df, aes(genre, errors, fill=best.k)) +
+  geom_bar(stat = "identity")
+```
 
 
