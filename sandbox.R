@@ -24,22 +24,27 @@ df$label <- as.factor(df$label)
 
 ####Logistic Regression####
 #getting data to be fit for a single genre
-df.blues <- filter(df, !(label == 'pop')) %>%
-  sample_n(100, replace = FALSE) %>%
-  mutate(label = 'other') %>%
-  bind_rows(filter(df, label == 'pop'))
-df.blues$label <- as.factor(df.blues$label)
 
-train_ind <- sample(1:nrow(df.blues), 0.6*nrow(df.blues))
-glm.music <- glm(label~., data = df.blues[train_ind,], family = binomial)
-pred <- predict(glm.music, df.blues[-train_ind,], type = "response")
-pred.bin <- as.numeric(pred >0.5)
-actual.bin <- as.numeric(df.blues[-train_ind,]$label == 'other')
-
-mean(pred.bin == actual.bin)
-
-
-
+genres <- levels(df$label)
+errors <- c()
+for (i in 1:length(genres)) {
+  genre.error <- c()
+  for (itr in 1:20) {
+    df.blues <- filter(df, !(label == 'rock')) %>%
+      sample_n(100, replace = FALSE) %>%
+      mutate(label = 'other') %>%
+      bind_rows(filter(df, label == 'rock'))
+    df.blues$label <- as.factor(df.blues$label)
+    
+    train_ind <- sample(1:nrow(df.blues), 0.6*nrow(df.blues))
+    glm.music <- glm(label~., data = df.blues[train_ind,], family = binomial)
+    pred <- predict(glm.music, df.blues[-train_ind,], type = "response")
+    pred.bin <- as.numeric(pred >0.5)
+    actual.bin <- as.numeric(df.blues[-train_ind,]$label == 'other')
+    genre.error[itr] <- 1 - mean(pred.bin == actual.bin)
+  }
+  errors[genres[i]] <- mean(genre.error)
+}
 
 
 
@@ -240,31 +245,114 @@ for (i in 1:length(genres)) {
 #####Random Forest####
 library(randomForest)
 ##Use bagging and randomforest with these decision trees p=10
-rf.tree1 <- randomForest(label~., data=df.tree, mtry=10, importance=TRUE)
+rf.1 <- randomForest(label~., data=df.tree, mtry=7, importance=TRUE)
 
-set.seed(18167)
-df.genre <- filter(df.tree, (label == 'rock')) %>%
-  bind_rows(filter(df, label == 'blues'))
-df.genre$label <- as.factor(as.character(df.genre$label))
-
-
-df.genre <- filter(df.tree, !(label == 'rock')) %>%
-  sample_n(100, replace = FALSE) %>%
-  mutate(label = 'other') %>%
-  bind_rows(filter(df.tree, label == 'rock'))
-df.genre$label <- as.factor(df.genre$label)
-
+#MULTINOMIAL CLASSIFICATION
 #mtry parameter tuning
 errors <- c()
 genre.errors <- c()
 mtry <- seq(1,15,1)
 for (i in 1:length(mtry)) {
-  print(i)
-  rf.cv <- run.random.forest.cv(df, mtry = mtry[i], 10, 10, 'rock')
+  rf.cv <- run.random.forest.cv(df, mtry = mtry[i], 10, 1)
   errors[i] <- rf.cv[[1]]
   #genre.errors[i] <- rf.cv[[2]]
 }
-plot(mtry, errors)
+#best mtry = 7, with overall 0.326 error
+rf.cv <- run.random.forest.cv(df, mtry = 7, 10, 1)
+errors <- rf.cv[[2]]
+#ggplot2 barplot
+errors.df <- cbind(genre = rownames(as.data.frame(errors)), as.data.frame(errors))
+rownames(errors.df) <- 1:nrow(errors.df)
+ggplot(errors.df, aes(genre, errors)) +
+  geom_bar(stat = "identity")
+
+
+##BINARY CLASSIFICATION
+#running paramater tunning many times to see the distribution of best mtry's
+#best.mtry <- c()
+best.errors <- c()
+for (t in 44:100) {
+  #mtry parameter tuning
+  errors <- c()
+  genre.errors <- c()
+  mtry <- seq(1,15,1)
+  for (i in 1:length(mtry)) {
+    rf.cv <- run.random.forest.cv(df, mtry = mtry[i], 10, 1, single.genre='rock')
+    errors[i] <- rf.cv[[1]]
+    #genre.errors[i] <- rf.cv[[2]]
+  }
+  #plot(mtry, errors)
+  print(t)
+  best.mtry[t] <- which.min(errors)
+  best.errors[t] <- min(errors)
+}
+indices <- which(best.mtry != 1)
+best.errors[indices]
+hist(best.mtry[indices], xlab = 'mtry', main = 'Distribution of Best Mtrys (Binary Classification for Rock)', xlim = c(3.5,15), breaks = 15)
+
+#Binary Classification tuning each genre
+genres <- levels(df$label)
+errors <- c()
+for (i in 1:length(genres)) {
+  rf.cv <- run.random.forest.cv(df, mtry = 7, 10, 2, single.genre = genres[i])
+  errors[genres[i]] <- rf.cv[[1]]
+}
+#ggplot2 barplot
+errors.df <- cbind(genre = rownames(as.data.frame(errors)), as.data.frame(errors))
+rownames(errors.df) <- 1:nrow(errors.df)
+ggplot(errors.df, aes(genre, errors)) +
+  geom_bar(stat = "identity")
 
 
 
+
+
+
+
+
+
+
+
+
+##Data for Investigation on Different Genres
+#Testing 2 genres vs. eachother
+set.seed(18167)
+df.2.genre <- filter(df.tree, (label == 'rock')) %>%
+  bind_rows(filter(df, label == 'blues'))
+df.2.genre$label <- as.factor(as.character(df.2.genre$label))
+#Testing 1 genre vs the rest
+df.1.genre <- filter(df.tree, !(label == 'rock')) %>%
+  sample_n(100, replace = FALSE) %>%
+  mutate(label = 'other') %>%
+  bind_rows(filter(df.tree, label == 'rock'))
+df.1.genre$label <- as.factor(df.genre$label)
+
+
+rf.2 <- randomForest(label~., data=df.1.genre, mtry=6, importance=TRUE)
+gini <- rf.2$importance[,'MeanDecreaseGini']
+gini.index <- sort(gini)
+#ggplot2 barplot
+gini.df <- cbind(genre = rownames(as.data.frame(gini.index)), as.data.frame(gini.index))
+rownames(gini.df) <- 1:nrow(gini.df)
+#variable importance plot
+ggplot(new.df, aes(x = reorder(genre, gini.index), gini.index)) +
+  geom_bar(stat = "identity") +
+  coord_flip()
+
+
+cv.2 <- run.random.forest.cv(df, mtry = 6, 10, 10, single.genre = 'rock')
+cv.1 <- run.random.forest.cv(df, mtry = 6, 10, 10)
+
+
+nrow(df)
+df.scatter <- filter(df, label %in% c('rock', 'classical', 'hiphop')) %>%
+  select(c('chroma_stft', 'rmse', 'label'))
+
+ggplot(df.scatter, aes(chroma_stft, rmse, colour=label)) + 
+  geom_point()
+
+df.scatter2 <- filter(df, label %in% c('rock', 'classical', 'hiphop')) %>%
+  select(c('tempo', 'mfcc10', 'label'))
+
+ggplot(df.scatter2, aes(tempo, mfcc10, colour=label)) + 
+  geom_point()

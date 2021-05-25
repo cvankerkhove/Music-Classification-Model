@@ -98,7 +98,7 @@ run.random.forest.cv <- function(df, mtry, k.folds, n.iterations, single.genre=N
       df.genre <- filter(df, !(label == single.genre)) %>%
         sample_n(100, replace = FALSE) %>%
         mutate(label = 'other') %>%
-        bind_rows(filter(df.tree, label == 'rock'))
+        bind_rows(filter(df.tree, label == single.genre))
       df.genre$label <- as.factor(df.genre$label)
       df <- df.genre
     }

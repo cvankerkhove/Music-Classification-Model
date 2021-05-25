@@ -23,6 +23,8 @@ library(tibble)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
+library(randomForest)
+library(tree)
 source("Helpful_Functions.R")
 ```
 
@@ -51,10 +53,183 @@ df <- select(music.dat, -filename)
 df$label <- as.factor(df$label)
 tibble(df)
 ```
+## **Binomial Classification**
 
 ## K-Nearest-Neighbor Algorithm
 
-### Multinomial Classification
+Next, I will use the KNN algorithm, but as a binary classifier, i.e. for each genre I will update the dataframe and change every other genre to "other"
+so that the column as a factor only has 2 levels (said genre, and other). The goal of this is to improve the accuracy of each genre without multinomial classification.
+Furthermore, I will use 10 fold CV 10 times f choose a seperate optimal K value for each genre; providing those values of K and plotting the errors. 
+
+Another assumption, I randomly select 100 "other" data points to keep the dataset balanced, as we will only have 100 points for each individual genre
+
+``` {r KNN Binary Classification, include=FALSE}
+#binary classification for each genre
+#for each genre
+#take data points from genre (100)
+#select 100 random data points from non-genre and label as 'other'
+#run KNN 
+genres <- levels(df$label)
+#list for recording errors of KNN
+errors <- c()
+#lists for finding best k-value for each genre
+k.values <- seq(1,20,1)
+best.k <- c()
+
+for (i in 1:length(genres)) {
+  print(genres[i])
+  df.genre <- filter(df, !(label == genres[i])) %>%
+    sample_n(100, replace = FALSE) %>%
+    mutate(label = 'other') %>%
+    bind_rows(filter(df, label == genres[i]))
+  df.genre$label <- as.factor(df.genre$label)
+  #out <- run.knn(df.genre, 3, levels(df.genre$label), 0.5)
+  #error[genres[i]] <- out[[2]]
+  #tables[[genres[i]]] <- out[[1]]
+  #list for storing error values of each K 
+  k.list <- c()
+  for (k in 1:length(k.values)) {
+    out <- run.knn.cv(df.genre, k.values[k], levels(df.genre$label), 10, 10)
+    k.list[k] <- out
+  }
+  best.k[genres[i]] <- which.min(k.list)
+  errors[genres[i]] <- min(k.list)
+}
+```
+
+```{r Plotting Error Values, echo=FALSE}
+##ggplot2 barplotting
+#getting error data in a valid input to ggplot2
+errors.df1 <- cbind(genre = rownames(as.data.frame(errors)), as.data.frame(errors),
+                        as.data.frame(best.k))
+rownames(errors.df1) <- 1:nrow(errors.df1)
+errors.df1$best.k <- as.factor(errors.df1$best.k)
+
+ggplot(errors.df1, aes(genre, errors, fill=best.k)) +
+  geom_bar(stat = "identity") +
+  labs(title = 'KNN Performance')
+```
+
+## Pruned Decision Trees
+
+In the next cell I will perform the same process, but only using sub-setted data for binary classification again (200 rows)
+pruning each tree by their best k parameter using cross-validation
+
+```{r Pruned Tree binomial classification, echo = FALSE}
+df.tree <- df
+genres <- levels(df.tree$label)
+errors <- c()
+for (i in 1:length(genres)) {
+  #modifying main dataset to be a balanced 200 rows each time
+  df.genre <- filter(df.tree, !(label == genres[i])) %>%
+    sample_n(100, replace = FALSE) %>%
+    mutate(label = 'other') %>%
+    bind_rows(filter(df, label == genres[i]))
+  df.genre$label <- as.factor(df.genre$label)
+  #Creating a tree and pruned tree using training data
+  train <- sample(1:nrow(df.genre), nrow(df.genre)*0.70)
+  tree.1genre <- tree(label~., df.genre[train,])
+  cv1 <- cv.tree(tree.1genre, FUN = prune.misclass)
+  pruned.tree <- prune.misclass(tree.1genre, best=cv1$size[which.min(cv1$dev)])
+  #predictions train
+  pred <- predict(pruned.tree, newdata=df.genre[-train,], type='class')
+  t <-table(pred, df.genre[-train,]$label)
+  errors[genres[i]] <-  1 - mean(pred == df.genre[-train,]$label)
+}
+```
+
+```{r Plotting Tree Binomial Errors, echo = FALSE}
+errors <- replace_na(errors, 1)
+#ggplot2 barplot
+errors.df2 <- cbind(genre = rownames(as.data.frame(errors)), as.data.frame(errors))
+rownames(errors.df2) <- 1:nrow(errors.df2)
+
+ggplot(errors.df2, aes(genre, errors)) +
+  geom_bar(stat = "identity", color='darkblue') +
+  labs(title = 'Decision Tree Performance')
+```
+
+## RandomForest
+
+In this next cell, I will perform Binary classification, in the same ways as above, using the
+RandomForest algorithm and the optimal tuned mtry (which was found to be 7 using a type of cross validation). 
+The error values depicted in the bar-chart values were found using 10 fold, 10-iteration cross validation.
+
+``` {r Binary Classification RandomForest, echo = FALSE}
+#Binary Classification tuning each genre
+genres <- levels(df$label)
+errors <- c()
+for (i in 1:length(genres)) {
+  rf.cv <- run.random.forest.cv(df.tree, mtry = 7, 10, 2, single.genre = genres[i])
+  errors[genres[i]] <- rf.cv[[1]]
+}
+#ggplot2 barplot
+errors.df3 <- cbind(genre = rownames(as.data.frame(errors)), as.data.frame(errors))
+rownames(errors.df3) <- 1:nrow(errors.df3)
+ggplot(errors.df3, aes(genre, errors)) +
+  geom_bar(stat = "identity", color = 'darkred') +
+  labs(title = 'RandomForest Performance')
+```
+
+Variable Importance for Rock and Classical Music (Two very different sounding genres)
+
+```{r Variable importance singel genres, echo = FALSE, fig.show="hold", out.width="50%"}
+par(mfrow=c(1,2))
+#Testing 1 genre vs the rest (ROCK)
+df.1.genre <- filter(df.tree, !(label == 'rock')) %>%
+  sample_n(100, replace = FALSE) %>%
+  mutate(label = 'other') %>%
+  bind_rows(filter(df.tree, label == 'rock'))
+df.1.genre$label <- as.factor(df.genre$label)
+#Random Forest for this genre
+rf.1 <- randomForest(label~., data=df.1.genre, mtry=6, importance=TRUE)
+gini <- rf.1$importance[,'MeanDecreaseGini']
+gini.index <- sort(gini)
+#ggplot2 barplot
+gini.df <- cbind(genre = rownames(as.data.frame(gini.index)), as.data.frame(gini.index))
+rownames(gini.df) <- 1:nrow(gini.df)
+#variable importance plot
+ggplot(gini.df, aes(x = reorder(genre, gini.index), gini.index)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(title = 'Predictor Importance: ROCK', x = 'Predictors')
+
+#CLASSICAL
+df.1.genre <- filter(df.tree, !(label == 'classical')) %>%
+  sample_n(100, replace = FALSE) %>%
+  mutate(label = 'other') %>%
+  bind_rows(filter(df.tree, label == 'classical'))
+df.1.genre$label <- as.factor(df.genre$label)
+#Random Forest for this genre
+rf.2 <- randomForest(label~., data=df.1.genre, mtry=6, importance=TRUE)
+gini <- rf.2$importance[,'MeanDecreaseGini']
+gini.index <- sort(gini)
+#ggplot2 barplot
+gini.df <- cbind(genre = rownames(as.data.frame(gini.index)), as.data.frame(gini.index))
+rownames(gini.df) <- 1:nrow(gini.df)
+#variable importance plot
+ggplot(gini.df, aes(x = reorder(genre, gini.index), gini.index)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(title = 'Predictor Importance: CLASSICAL', x = 'Predictors')
+```
+
+### Results
+
+``` {r Gropued barplot, echo = FALSE}
+errors.df1[,'Algorithm'] = 'KNN'
+errors.df2[,'Algorithm'] = 'Pruned Tree'
+errors.df3[,'Algorithm'] = 'Random Forest'
+errors.df.complete = bind_rows(errors.df1, errors.df2)
+errors.df.complete = bind_rows(errors.df.complete, errors.df3)
+
+#plottinf barchart
+ggplot(errors.df.complete, aes(fill=Algorithm, y=errors, x=genre)) +
+  geom_bar(position='dodge', stat='identity')
+
+```
+
+## **Multinomial Classification** 
 
 In the following cells I will perform 10-fold CV 10 times, on the KNN algorithm classification for different values of K (number of nearest neighbors to consider during algorithm), and then plot to determine the best value of K.
 
@@ -108,72 +283,21 @@ errors.num <- c()
 for (i in 1:ncol(errors)) {
   errors.num[genres[i]] <- errors[[i]]
 }
-
-errors.df <- cbind(genre = rownames(as.data.frame(errors.num)), as.data.frame(errors.num))
-rownames(errors.df) <- 1:nrow(errors.df)
+errors <- errors.num
+errors.df4 <- cbind(genre = rownames(as.data.frame(errors)), as.data.frame(errors))
+rownames(errors.df4) <- 1:nrow(errors.df4)
 #plotting
-ggplot(errors.df, aes(genre, errors.num)) +
-  geom_bar(stat = "identity")
+ggplot(errors.df4, aes(genre, errors)) +
+  geom_bar(stat = "identity") +
+  labs(title = 'KNN Multinomial')
 ```
 
-### Binary Classification
-
-Next, I will use the KNN algorithm, but as a binary classifier, i.e. for each genre I will update the dataframe and change every other genre to "other"
-so that the column as a factor only has 2 levels (said genre, and other). The goal of this is to improve the accuracy of each genre without multinomial classification.
-Furthermore, I will use 10 fold CV 10 times f choose a seperate optimal K value for each genre; providing those values of K and plotting the errors. 
-
-Another assumption, I randomly select 100 "other" data points to keep the dataset balanced, as we will only have 100 points for each individual genre
-
-``` {r KNN Binary Classification, include=FALSE}
-#binary classification for each genre
-#for each genre
-#take data points from genre (100)
-#select 100 random data points from non-genre and label as 'other'
-#run KNN 
-genres <- levels(df$label)
-#list for recording errors of KNN
-errors <- c()
-#lists for finding best k-value for each genre
-k.values <- seq(1,20,1)
-best.k <- c()
-
-for (i in 1:length(genres)) {
-  print(genres[i])
-  df.genre <- filter(df, !(label == genres[i])) %>%
-    sample_n(100, replace = FALSE) %>%
-    mutate(label = 'other') %>%
-    bind_rows(filter(df, label == genres[i]))
-  df.genre$label <- as.factor(df.genre$label)
-  #out <- run.knn(df.genre, 3, levels(df.genre$label), 0.5)
-  #error[genres[i]] <- out[[2]]
-  #tables[[genres[i]]] <- out[[1]]
-  #list for storing error values of each K 
-  k.list <- c()
-  for (k in 1:length(k.values)) {
-    out <- run.knn.cv(df.genre, k.values[k], levels(df.genre$label), 10, 10)
-    k.list[k] <- out
-  }
-  best.k[genres[i]] <- which.min(k.list)
-  errors[genres[i]] <- min(k.list)
-}
-```
-
-```{r Plotting Error Values, echo=FALSE}
-##ggplot2 barplotting
-#getting error data in a valid input to ggplot2
-errors.df <- cbind(genre = rownames(as.data.frame(errors)), as.data.frame(errors),
-                        as.data.frame(best.k))
-rownames(errors.df) <- 1:nrow(errors.df)
-errors.df$best.k <- as.factor(errors.df$best.k)
-
-ggplot(errors.df, aes(genre, errors, fill=best.k)) +
-  geom_bar(stat = "identity")
-```
 
 
 ## Decision Trees and Extenstions
 In the next section, I will attempt to classify the data using decision tree algorithms, and various extensions
-such as pruning the tree, random forests, and boosting
+such as pruning the tree, bagging, and random forests
+
 ### Pruned Decision Tree
 
 In the following cell I use a single decision tree (pruned via 10 fold cv for best k parameter) to perform multinomial classification
@@ -181,7 +305,6 @@ and plot the classification errors across genres
 
 ```{r Pruned Tree Multinomial Classification, include = FALSE}
 ####Decision Trees####
-library(tree)
 #variable name 'df' throws error in prune.misclass() function
 
 df.tree <- df
@@ -219,44 +342,82 @@ t
 ```{r Plotting Tree Multinomial Errors, echo = FALSE}
 errors <- replace_na(errors, 1)
 #ggplot2 barplot
-errors.df <- cbind(genre = rownames(as.data.frame(errors)), as.data.frame(errors))
-rownames(errors.df) <- 1:nrow(errors.df)
+errors.df5 <- cbind(genre = rownames(as.data.frame(errors)), as.data.frame(errors))
+rownames(errors.df5) <- 1:nrow(errors.df5)
 
-ggplot(errors.df, aes(genre, errors)) +
-  geom_bar(stat = "identity")
+ggplot(errors.df5, aes(genre, errors)) +
+  geom_bar(stat = "identity") +
+  labs(title = 'Decision Tree Multinomial')
 ```
 
-In the next cell I will perform the same process, but only using sub-setted data for binary classification again (200 rows)
-pruning each tree by their best k parameter using cross-validation
+### RandomForest Algorithm
 
-```{r Pruned Tree binomial classification, echo = FALSE}
-genres <- levels(df.tree$label)
-errors <- c()
-for (i in 1:length(genres)) {
-  #modifying main dataset to be a balanced 200 rows each time
-  df.genre <- filter(df.tree, !(label == genres[i])) %>%
-    sample_n(100, replace = FALSE) %>%
-    mutate(label = 'other') %>%
-    bind_rows(filter(df, label == genres[i]))
-  df.genre$label <- as.factor(df.genre$label)
-  #Creating a tree and pruned tree using training data
-  train <- sample(1:nrow(df.genre), nrow(df.genre)*0.70)
-  tree.1genre <- tree(label~., df.genre[train,])
-  cv1 <- cv.tree(tree.1genre, FUN = prune.misclass)
-  pruned.tree <- prune.misclass(tree.1genre, best=cv1$size[which.min(cv1$dev)])
-  #predictions train
-  pred <- predict(pruned.tree, newdata=df.genre[-train,], type='class')
-  t <-table(pred, df.genre[-train,]$label)
-  errors[genres[i]] <-  1 - mean(pred == df.genre[-train,]$label)
-}
-```
+In the next cells I will construct RandomForest models for both multinomial and binary
+classification. Note the model construction is based of running 10-Fold, 10 iteration Cross Validation.
+Furthermore the mtry values are selected by running 100 iterations of 10-fold cv and selecting 
+the mtry that most frequently had the lowest cv error. In this case, optimal mtry = 7
 
-```{r Plotting Tree Binomial Errors, echo = FALSE}
-errors <- replace_na(errors, 1)
+```{r Random Forest, echo = FALSE}
+#best mtry = 7, with overall 0.326 error
+rf.cv <- run.random.forest.cv(df, mtry = 7, 10, 1)
+errors <- rf.cv[[2]]
 #ggplot2 barplot
-errors.df <- cbind(genre = rownames(as.data.frame(errors)), as.data.frame(errors))
-rownames(errors.df) <- 1:nrow(errors.df)
+errors.df6 <- cbind(genre = rownames(as.data.frame(errors)), as.data.frame(errors))
+rownames(errors.df6) <- 1:nrow(errors.df6)
+ggplot(errors.df6, aes(genre, errors)) +
+  geom_bar(stat = "identity") +
+  labs(title = 'RandomForest Multinomial')
+```
 
-ggplot(errors.df, aes(genre, errors)) +
-  geom_bar(stat = "identity")
+#### Variable Importance
+```{r Variable importance graph, echo= FALSE}
+#random forest on all data points with mtry = 7
+rf.1 <- randomForest(label~., data=df.tree, mtry=7, importance=TRUE)
+gini <- rf.1$importance[,'MeanDecreaseGini']
+gini.index <- sort(gini)
+#ggplot2 barplot
+gini.df <- cbind(genre = rownames(as.data.frame(gini.index)), as.data.frame(gini.index))
+rownames(gini.df) <- 1:nrow(gini.df)
+#variable importance plot
+ggplot(gini.df, aes(x = reorder(genre, gini.index), gini.index)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(x = 'Predictors')
+```
+In the next cell, I have selected the top two important variables and plot a few genres
+to see how the points are clustered in a 2D fashion for visual confirmation purposes
+
+```{r Clustering Scatter, echo=FALSE}
+par(mfrow=c(1,2))
+
+df.scatter <- filter(df, label %in% c('rock', 'classical', 'hiphop')) %>%
+  select(c('chroma_stft', 'rmse', 'label'))
+
+ggplot(df.scatter, aes(chroma_stft, rmse, colour=label)) + 
+  geom_point()
+
+#Least important Predictors
+df.scatter2 <- filter(df, label %in% c('rock', 'classical', 'hiphop')) %>%
+  select(c('tempo', 'mfcc10', 'label'))
+
+ggplot(df.scatter2, aes(tempo, mfcc10, colour=label)) + 
+  geom_point()
+```
+
+These plots confirm our findings with the variable importance as in the plot with the 2 most
+important variables, there are very clear linear boundaries, but in the plot with the 2 least 
+important variables, there are no clear clusters. 
+
+### Multinomial Classification Results
+
+```{r Grouped Barplot Multinomial, echo = FALSE}
+errors.df4[,'Algorithm'] = 'KNN'
+errors.df5[,'Algorithm'] = 'Pruned Tree'
+errors.df6[,'Algorithm'] = 'Random Forest'
+errors.df.complete = bind_rows(errors.df4, errors.df5)
+errors.df.complete = bind_rows(errors.df.complete, errors.df6)
+
+#plottinf barchart
+ggplot(errors.df.complete, aes(fill=Algorithm, y=errors, x=genre)) +
+  geom_bar(position='dodge', stat='identity')
 ```
