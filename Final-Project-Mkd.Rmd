@@ -21,6 +21,7 @@ setwd("/Users/cvankerkhove/Documents/GitHub /Music-Classification-Model")
 library(readr)
 library(tibble)
 library(dplyr)
+library(tidyr)
 library(ggplot2)
 source("Helpful_Functions.R")
 ```
@@ -170,3 +171,92 @@ ggplot(errors.df, aes(genre, errors, fill=best.k)) +
 ```
 
 
+## Decision Trees and Extenstions
+In the next section, I will attempt to classify the data using decision tree algorithms, and various extensions
+such as pruning the tree, random forests, and boosting
+### Pruned Decision Tree
+
+In the following cell I use a single decision tree (pruned via 10 fold cv for best k parameter) to perform multinomial classification
+and plot the classification errors across genres
+
+```{r Pruned Tree Multinomial Classification, include = FALSE}
+####Decision Trees####
+library(tree)
+#variable name 'df' throws error in prune.misclass() function
+
+df.tree <- df
+tree.music <- tree(label~., df.tree)
+cv1 <- cv.tree(tree.music, FUN = prune.misclass)
+#validation set
+train <- sample(1:1000, 700, replace=FALSE)
+tree.music <- tree(label~., df.tree, subset=train)
+#using best k parameter from cv
+pruned.tree.music <- prune.misclass(tree.music, best = cv1$size[which.min(cv1$dev)])
+tree.pred <- predict(pruned.tree.music, df.tree[-train,], type='class')
+t <- table(tree.pred, df.tree[-train,]$label )
+#Getting each genre classification error
+genres <- levels(df.tree$label)
+errors <- c()
+for (i in 1:length(genres)) {
+  num <- t[genres[i], genres[i]]
+  denom <- 0
+  for (i2 in 1:nrow(t)) {
+    denom <- denom + t[genres[i], i2]
+  }
+  errors[genres[i]] <- 1 - (num / denom)
+}
+```
+##### Tree Summary
+```{r Tree summary, echo = FALSE}
+summary(pruned.tree.music)
+```
+##### Multinomial Confusion Matrix
+```{r Confusion Matrix 1, echo = FALSE}
+t
+```
+
+
+```{r Plotting Tree Multinomial Errors, echo = FALSE}
+errors <- replace_na(errors, 1)
+#ggplot2 barplot
+errors.df <- cbind(genre = rownames(as.data.frame(errors)), as.data.frame(errors))
+rownames(errors.df) <- 1:nrow(errors.df)
+
+ggplot(errors.df, aes(genre, errors)) +
+  geom_bar(stat = "identity")
+```
+
+In the next cell I will perform the same process, but only using sub-setted data for binary classification again (200 rows)
+pruning each tree by their best k parameter using cross-validation
+
+```{r Pruned Tree binomial classification, echo = FALSE}
+genres <- levels(df.tree$label)
+errors <- c()
+for (i in 1:length(genres)) {
+  #modifying main dataset to be a balanced 200 rows each time
+  df.genre <- filter(df.tree, !(label == genres[i])) %>%
+    sample_n(100, replace = FALSE) %>%
+    mutate(label = 'other') %>%
+    bind_rows(filter(df, label == genres[i]))
+  df.genre$label <- as.factor(df.genre$label)
+  #Creating a tree and pruned tree using training data
+  train <- sample(1:nrow(df.genre), nrow(df.genre)*0.70)
+  tree.1genre <- tree(label~., df.genre[train,])
+  cv1 <- cv.tree(tree.1genre, FUN = prune.misclass)
+  pruned.tree <- prune.misclass(tree.1genre, best=cv1$size[which.min(cv1$dev)])
+  #predictions train
+  pred <- predict(pruned.tree, newdata=df.genre[-train,], type='class')
+  t <-table(pred, df.genre[-train,]$label)
+  errors[genres[i]] <-  1 - mean(pred == df.genre[-train,]$label)
+}
+```
+
+```{r Plotting Tree Binomial Errors, echo = FALSE}
+errors <- replace_na(errors, 1)
+#ggplot2 barplot
+errors.df <- cbind(genre = rownames(as.data.frame(errors)), as.data.frame(errors))
+rownames(errors.df) <- 1:nrow(errors.df)
+
+ggplot(errors.df, aes(genre, errors)) +
+  geom_bar(stat = "identity")
+```
