@@ -1,0 +1,335 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  pdftitle={4740 Project},
+  pdfauthor={Chris VanKerkhove, John Bush},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+
+\title{4740 Project}
+\author{Chris VanKerkhove, John Bush}
+\date{5/25/2021}
+
+\begin{document}
+\maketitle
+
+\hypertarget{a-music-assignment-model}{%
+\subsection{A Music Assignment Model}\label{a-music-assignment-model}}
+
+In this Markdown, I will document my process of creating and validating
+different models (with increasing complexity) for classifying music
+snippets into different musical genres.
+
+The data is taken from Kaggle from the page
+\url{https://www.kaggle.com/insiyeah/musicfeatures}. The data was
+generated using 30 second MP3 snippets of songs and then extracting
+features of the sound-bite to act as different predictors.
+
+\hypertarget{data-preproccessing}{%
+\subsubsection{Data Preproccessing}\label{data-preproccessing}}
+
+Checking for missing values, casting types for classification, ensuring
+clean data.frame
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{#Dataset is complete, No missing data}
+\KeywordTok{sum}\NormalTok{(missing)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{#removing file name column ('label' column acts as dependent var)}
+\NormalTok{df <-}\StringTok{ }\KeywordTok{select}\NormalTok{(music.dat, }\OperatorTok{-}\NormalTok{filename)}
+\NormalTok{df}\OperatorTok{$}\NormalTok{label <-}\StringTok{ }\KeywordTok{as.factor}\NormalTok{(df}\OperatorTok{$}\NormalTok{label)}
+\KeywordTok{tibble}\NormalTok{(df)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Registered S3 method overwritten by 'cli':
+##   method     from
+##   print.tree tree
+\end{verbatim}
+
+\begin{verbatim}
+## # A tibble: 1,000 x 29
+##    tempo beats chroma_stft   rmse spectral_centro~ spectral_bandwi~ rolloff
+##    <dbl> <dbl>       <dbl>  <dbl>            <dbl>            <dbl>   <dbl>
+##  1 103.     50       0.380 0.248             2117.            1957.   4196.
+##  2  95.7    44       0.306 0.113             1156.            1498.   2170.
+##  3 152.     75       0.253 0.152             1331.            1974.   2900.
+##  4 185.     91       0.269 0.119             1361.            1568.   2740.
+##  5 161.     74       0.391 0.138             1811.            2052.   3928.
+##  6 108.     51       0.357 0.162             2068.            2034.   4231.
+##  7 161.     80       0.375 0.110             2340.            2257.   4973.
+##  8 152.     74       0.431 0.196             1947.            1980.   3956.
+##  9  92.3    45       0.291 0.0892            1110.            1463.   2244.
+## 10 152.     70       0.329 0.0670            1172.            1706.   2345.
+## # ... with 990 more rows, and 22 more variables: zero_crossing_rate <dbl>,
+## #   mfcc1 <dbl>, mfcc2 <dbl>, mfcc3 <dbl>, mfcc4 <dbl>, mfcc5 <dbl>,
+## #   mfcc6 <dbl>, mfcc7 <dbl>, mfcc8 <dbl>, mfcc9 <dbl>, mfcc10 <dbl>,
+## #   mfcc11 <dbl>, mfcc12 <dbl>, mfcc13 <dbl>, mfcc14 <dbl>, mfcc15 <dbl>,
+## #   mfcc16 <dbl>, mfcc17 <dbl>, mfcc18 <dbl>, mfcc19 <dbl>, mfcc20 <dbl>,
+## #   label <fct>
+\end{verbatim}
+
+\hypertarget{multinomial-classification}{%
+\subsection{\texorpdfstring{\textbf{Multinomial
+Classification}}{Multinomial Classification}}\label{multinomial-classification}}
+
+In the following cells I will perform 10-fold CV 10 times, on the KNN
+algorithm classification for different values of K (number of nearest
+neighbors to consider during algorithm), and then plot to determine the
+best value of K.
+
+\includegraphics{Final-Project-Mkd_files/figure-latex/KNN-CV-1.pdf}
+
+Based on the plot from this validation method, for reducing overall
+error (across all classification classes), the optimal \textbf{K= 5}.
+Next, I will run 20 iterations of KNN using the validation set approach
+(60\% training), this time recording and plotting the error of each
+respective genre
+
+Errors:
+\includegraphics{Final-Project-Mkd_files/figure-latex/Errors Plot -1.pdf}
+
+\hypertarget{decision-trees-and-extenstions}{%
+\subsection{Decision Trees and
+Extenstions}\label{decision-trees-and-extenstions}}
+
+In the next section, I will attempt to classify the data using decision
+tree algorithms, and various extensions such as pruning the tree,
+bagging, and random forests
+
+\hypertarget{pruned-decision-tree}{%
+\subsubsection{Pruned Decision Tree}\label{pruned-decision-tree}}
+
+In the following cell I use a single decision tree (pruned via 10 fold
+cv for best k parameter) to perform multinomial classification and plot
+the classification errors across genres
+
+\hypertarget{tree-summary}{%
+\subparagraph{Tree Summary}\label{tree-summary}}
+
+\begin{verbatim}
+## 
+## Classification tree:
+## snip.tree(tree = tree.music, nodes = c(30L, 13L))
+## Variables actually used in tree construction:
+## [1] "chroma_stft"        "rmse"               "spectral_bandwidth"
+## [4] "mfcc17"             "mfcc4"              "mfcc1"             
+## [7] "mfcc13"             "mfcc15"             "mfcc5"             
+## Number of terminal nodes:  16 
+## Residual mean deviance:  2.624 = 1795 / 684 
+## Misclassification error rate: 0.48 = 336 / 700
+\end{verbatim}
+
+\hypertarget{multinomial-confusion-matrix}{%
+\subparagraph{Multinomial Confusion
+Matrix}\label{multinomial-confusion-matrix}}
+
+\begin{verbatim}
+##            
+## tree.pred   blues classical country disco hiphop jazz metal pop reggae rock
+##   blues        10         0       5     0      0    1     1   2      0    5
+##   classical     0        27       1     1      0    5     0   0      1    0
+##   country       4         0       7     2      0    3     1   2      4    9
+##   disco         1         0       0     5      2    0     0   4      1    1
+##   hiphop        1         1       0     7     17    0     8   1      5    3
+##   jazz          4         2       4     0      0   17     0   4      0    5
+##   metal         1         0       0     5      3    0    17   0      0    2
+##   pop           0         0       2     7      4    1     0  21      0    0
+##   reggae        5         1       3     1      4    2     0   2     12    3
+##   rock          3         0       2     6      1    0     2   0      3    3
+\end{verbatim}
+
+\includegraphics{Final-Project-Mkd_files/figure-latex/Plotting Tree Multinomial Errors-1.pdf}
+
+\hypertarget{randomforest-algorithm}{%
+\subsubsection{RandomForest Algorithm}\label{randomforest-algorithm}}
+
+In the next cells I will construct RandomForest models for both
+multinomial and binary classification. Note the model construction is
+based of running 10-Fold, 10 iteration Cross Validation. Furthermore the
+mtry values are selected by running 100 iterations of 10-fold cv and
+selecting the mtry that most frequently had the lowest cv error. In this
+case, optimal mtry = 7
+
+\includegraphics{Final-Project-Mkd_files/figure-latex/Random Forest-1.pdf}
+
+\hypertarget{variable-importance}{%
+\paragraph{Variable Importance}\label{variable-importance}}
+
+\includegraphics{Final-Project-Mkd_files/figure-latex/Variable importance graph-1.pdf}
+In the next cell, I have selected the top two important variables and
+plot a few genres to see how the points are clustered in a 2D fashion
+for visual confirmation purposes
+
+\includegraphics{Final-Project-Mkd_files/figure-latex/Clustering Scatter-1.pdf}
+\includegraphics{Final-Project-Mkd_files/figure-latex/Clustering Scatter-2.pdf}
+
+These plots confirm our findings with the variable importance as in the
+plot with the 2 most important variables, there are very clear linear
+boundaries, but in the plot with the 2 least important variables, there
+are no clear clusters.
+
+\hypertarget{multinomial-classification-results}{%
+\subsubsection{Multinomial Classification
+Results}\label{multinomial-classification-results}}
+
+\includegraphics{Final-Project-Mkd_files/figure-latex/Grouped Barplot Multinomial-1.pdf}
+
+\hypertarget{binomial-classification}{%
+\subsection{\texorpdfstring{\textbf{Binomial
+Classification}}{Binomial Classification}}\label{binomial-classification}}
+
+\hypertarget{k-nearest-neighbor-algorithm}{%
+\subsection{K-Nearest-Neighbor
+Algorithm}\label{k-nearest-neighbor-algorithm}}
+
+Next, I will use the KNN algorithm, but as a binary classifier, i.e.~for
+each genre I will update the dataframe and change every other genre to
+``other'' so that the column as a factor only has 2 levels (said genre,
+and other). The goal of this is to improve the accuracy of each genre
+without multinomial classification. Furthermore, I will use 10 fold CV
+10 times f choose a seperate optimal K value for each genre; providing
+those values of K and plotting the errors.
+
+Another assumption, I randomly select 100 ``other'' data points to keep
+the dataset balanced, as we will only have 100 points for each
+individual genre
+
+\includegraphics{Final-Project-Mkd_files/figure-latex/Plotting Error Values-1.pdf}
+
+\hypertarget{pruned-decision-trees}{%
+\subsection{Pruned Decision Trees}\label{pruned-decision-trees}}
+
+In the next cell I will perform the same process, but only using
+sub-setted data for binary classification again (200 rows) pruning each
+tree by their best k parameter using cross-validation
+
+\includegraphics{Final-Project-Mkd_files/figure-latex/Plotting Tree Binomial Errors-1.pdf}
+
+\hypertarget{randomforest}{%
+\subsection{RandomForest}\label{randomforest}}
+
+In this next cell, I will perform Binary classification, in the same
+ways as above, using the RandomForest algorithm and the optimal tuned
+mtry (which was found to be 7 using a type of cross validation). The
+error values depicted in the bar-chart values were found using 10 fold,
+10-iteration cross validation.
+
+\includegraphics{Final-Project-Mkd_files/figure-latex/Binary Classification RandomForest-1.pdf}
+
+Variable Importance for Rock and Classical Music (Two very different
+sounding genres)
+
+\includegraphics[width=0.5\linewidth]{Final-Project-Mkd_files/figure-latex/Variable importance singel genres-1}
+\includegraphics[width=0.5\linewidth]{Final-Project-Mkd_files/figure-latex/Variable importance singel genres-2}
+
+\hypertarget{results}{%
+\subsubsection{Results}\label{results}}
+
+\includegraphics{Final-Project-Mkd_files/figure-latex/Gropued barplot-1.pdf}
+
+\end{document}

@@ -344,15 +344,3 @@ cv.2 <- run.random.forest.cv(df, mtry = 6, 10, 10, single.genre = 'rock')
 cv.1 <- run.random.forest.cv(df, mtry = 6, 10, 10)
 
 
-nrow(df)
-df.scatter <- filter(df, label %in% c('rock', 'classical', 'hiphop')) %>%
-  select(c('chroma_stft', 'rmse', 'label'))
-
-ggplot(df.scatter, aes(chroma_stft, rmse, colour=label)) + 
-  geom_point()
-
-df.scatter2 <- filter(df, label %in% c('rock', 'classical', 'hiphop')) %>%
-  select(c('tempo', 'mfcc10', 'label'))
-
-ggplot(df.scatter2, aes(tempo, mfcc10, colour=label)) + 
-  geom_point()
